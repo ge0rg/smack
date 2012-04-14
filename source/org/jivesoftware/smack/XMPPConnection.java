@@ -424,10 +424,15 @@ public class XMPPConnection extends Connection {
      */
     public void quickShutdown() {
         try {
-            try { socket.shutdownInput(); } catch (Exception e) {}
+            try {
+                socket.shutdownInput();
+            }
+            catch (Exception e) {
+            }
             socket.close();
             shutdown(new org.jivesoftware.smack.packet.Presence(org.jivesoftware.smack.packet.Presence.Type.unavailable));
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             System.err.println(e);
         }
     }

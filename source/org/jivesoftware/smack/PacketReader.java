@@ -300,9 +300,11 @@ class PacketReader {
                     }
                     else {
                         try {
-                            UnknownPacket packet = (UnknownPacket) PacketParserUtils.parsePacketExtension(parser.getName(), parser.getNamespace(), parser);
+                            UnknownPacket packet = (UnknownPacket) PacketParserUtils.parsePacketExtension(
+                                    parser.getName(), parser.getNamespace(), parser);
                             processPacket(packet);
-                        } catch (ClassCastException ex) {
+                        }
+                        catch (ClassCastException ex) {
                             // ignore
                         }
                     }
@@ -412,9 +414,11 @@ class PacketReader {
                 }
                 else {
                     try {
-                        UnknownPacket packet = (UnknownPacket) PacketParserUtils.parsePacketExtension(parser.getName(), parser.getNamespace(), parser);
+                        UnknownPacket packet = (UnknownPacket) PacketParserUtils.parsePacketExtension(parser.getName(),
+                                parser.getNamespace(), parser);
                         processPacket(packet);
-                    } catch (ClassCastException ex) {
+                    }
+                    catch (ClassCastException ex) {
                         // ignore
                     }
                 }

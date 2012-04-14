@@ -1,9 +1,5 @@
 /**
- * $RCSfile$
- * $Revision: 11824 $
- * $Date: 2010-08-15 08:13:05 -0700 (Sun, 15 Aug 2010) $
- *
- * Copyright 2003-2007 Jive Software.
+ * Copyright 2012 Miron Cuperman.
  *
  * All rights reserved. Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +19,7 @@ package org.jivesoftware.smack.packet;
 
 
 /**
+ * Contains packets that are unknown to Smack, but may be processed by extensions.
  */
 public abstract class UnknownPacket extends Packet implements PacketExtension {
     public String toXML() {
