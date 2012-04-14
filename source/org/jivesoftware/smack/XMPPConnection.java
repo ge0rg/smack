@@ -252,6 +252,9 @@ public class XMPPConnection extends Connection {
         }
 
         // Set the user.
+        if (resource == null)
+            return;
+
         if (response != null) {
             this.user = response;
             // Update the serviceName with the one returned by the server
@@ -412,6 +415,21 @@ public class XMPPConnection extends Connection {
 
     public boolean isAnonymous() {
         return anonymous;
+    }
+
+    /**
+     * Forceful shutdown without full disconnect.
+     *
+     * <p>Used when a reconnection is possible.
+     */
+    public void quickShutdown() {
+        try {
+            try { socket.shutdownInput(); } catch (Exception e) {}
+            socket.close();
+            shutdown(new org.jivesoftware.smack.packet.Presence(org.jivesoftware.smack.packet.Presence.Type.unavailable));
+        } catch (Exception e) {
+            System.err.println(e);
+        }
     }
 
     /**
@@ -1017,6 +1035,10 @@ public class XMPPConnection extends Connection {
      *      appropriate error messages to end-users.
      */
     public void connect() throws XMPPException {
+        connect(true);
+    }
+
+    public void connect(boolean bind) throws XMPPException {
         // Establishes the connection, readers and writers
         connectUsingConfiguration(config);
         // Automatically makes the login if the user was previously connected successfully
@@ -1028,7 +1050,8 @@ public class XMPPConnection extends Connection {
                 loginAnonymously();
             }
             else {
-                login(config.getUsername(), config.getPassword(), config.getResource());
+                login(config.getUsername(), config.getPassword(),
+                        bind ? config.getResource() : null);
             }
             notifyReconnection();
         }

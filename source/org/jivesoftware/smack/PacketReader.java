@@ -298,6 +298,14 @@ class PacketReader {
                         // to be sent by the server
                         resetParser();
                     }
+                    else {
+                        try {
+                            UnknownPacket packet = (UnknownPacket) PacketParserUtils.parsePacketExtension(parser.getName(), parser.getNamespace(), parser);
+                            processPacket(packet);
+                        } catch (ClassCastException ex) {
+                            // ignore
+                        }
+                    }
                 }
                 else if (eventType == XmlPullParser.END_TAG) {
                     if (parser.getName().equals("stream")) {
@@ -401,6 +409,14 @@ class PacketReader {
                 }
                 else if (parser.getName().equals("register")) {
                     connection.getAccountManager().setSupportsAccountCreation(true);
+                }
+                else {
+                    try {
+                        UnknownPacket packet = (UnknownPacket) PacketParserUtils.parsePacketExtension(parser.getName(), parser.getNamespace(), parser);
+                        processPacket(packet);
+                    } catch (ClassCastException ex) {
+                        // ignore
+                    }
                 }
             }
             else if (eventType == XmlPullParser.END_TAG) {
