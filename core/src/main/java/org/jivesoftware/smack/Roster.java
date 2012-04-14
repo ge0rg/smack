@@ -68,6 +68,8 @@ public class Roster {
 
     private SubscriptionMode subscriptionMode = getDefaultSubscriptionMode();
 
+    private boolean mOfflineOnError = true;
+
     /**
      * Returns the default subscription processing mode to use when a new Roster is created. The
      * subscription processing mode dictates what action Smack will take when subscription
@@ -123,6 +125,7 @@ public class Roster {
 
             public void connectionClosedOnError(Exception e) {
                 // Changes the presence available contacts to unavailable
+                if (mOfflineOnError)
                 setOfflinePresences();
             }
 
@@ -172,6 +175,10 @@ public class Roster {
      */
     public void setSubscriptionMode(SubscriptionMode subscriptionMode) {
         this.subscriptionMode = subscriptionMode;
+    }
+
+    public void setOfflineOnError(boolean offlineOnError) {
+        this.mOfflineOnError = offlineOnError;
     }
 
     /**
@@ -595,7 +602,7 @@ public class Roster {
      * presence sent from the server. After a disconnection, every Presence is set
      * to offline.
      */
-    private void setOfflinePresences() {
+    public void setOfflinePresences() {
         Presence packetUnavailable;
         for (String user : presenceMap.keySet()) {
             Map<String, Presence> resources = presenceMap.get(user);
