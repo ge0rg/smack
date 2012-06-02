@@ -482,4 +482,11 @@ class PacketReader {
             }
         }
     }
+
+    public void quickShutdown() {
+        done = true;
+
+        // Shut down the listener executor.
+        listenerExecutor.shutdown();
+    }
 }
