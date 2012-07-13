@@ -146,6 +146,48 @@ class PacketReader {
     }
 
     /**
+     * Sends out a notification that there was an error with the connection
+     * and closes the connection.
+     *
+     * @param e the exception that causes the connection close event.
+     */
+    void notifyConnectionError(Exception e) {
+        done = true;
+        // Closes the connection temporary. A reconnection is possible
+        connection.quickShutdown();
+        // Print the stack trace to help catch the problem
+        e.printStackTrace();
+        // Notify connection listeners of the error.
+        for (ConnectionListener listener : connection.getConnectionListeners()) {
+            try {
+                listener.connectionClosedOnError(e);
+            }
+            catch (Exception e2) {
+                // Catch and print any exception so we can recover
+                // from a faulty listener
+                e2.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Sends a notification indicating that the connection was reconnected successfully.
+     */
+    protected void notifyReconnection() {
+        // Notify connection listeners of the reconnection.
+        for (ConnectionListener listener : connection.getConnectionListeners()) {
+            try {
+                listener.reconnectionSuccessful();
+            }
+            catch (Exception e) {
+                // Catch and print any exception so we can recover
+                // from a faulty listener
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
      * Resets the parser using the latest connection's reader. Reseting the parser is necessary
      * when the plain connection has been secured or when a new opening stream element is going
      * to be sent by the server.
