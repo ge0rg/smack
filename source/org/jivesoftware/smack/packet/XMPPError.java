@@ -318,7 +318,7 @@ public class XMPPError {
      */
     public static class Condition {
 
-        public static final Condition interna_server_error = new Condition("internal-server-error");
+        public static final Condition internal_server_error = new Condition("internal-server-error");
         public static final Condition forbidden = new Condition("forbidden");
         public static final Condition bad_request = new Condition("bad-request");
         public static final Condition conflict = new Condition("conflict");
@@ -372,8 +372,8 @@ public class XMPPError {
 
         private static Map<Condition, ErrorSpecification> errorSpecifications() {
             Map<Condition, ErrorSpecification> instances = new HashMap<Condition, ErrorSpecification>(22);
-            instances.put(Condition.interna_server_error, new ErrorSpecification(
-                    Condition.interna_server_error, Type.WAIT, 500));
+            instances.put(Condition.internal_server_error, new ErrorSpecification(
+                    Condition.internal_server_error, Type.WAIT, 500));
             instances.put(Condition.forbidden, new ErrorSpecification(Condition.forbidden,
                     Type.AUTH, 403));
             instances.put(Condition.bad_request, new XMPPError.ErrorSpecification(
