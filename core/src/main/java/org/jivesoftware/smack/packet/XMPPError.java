@@ -21,42 +21,42 @@ import java.util.*;
 
 /**
  * Represents a XMPP error sub-packet. Typically, a server responds to a request that has
- * problems by sending the packet back and including an error packet. Each error has a code, type, 
+ * problems by sending the packet back and including an error packet. Each error has a type,
  * error condition as well as as an optional text explanation. Typical errors are:<p>
  *
  * <table border=1>
- *      <hr><td><b>Code</b></td><td><b>XMPP Error</b></td><td><b>Type</b></td></hr>
- *      <tr><td>500</td><td>interna-server-error</td><td>WAIT</td></tr>
- *      <tr><td>403</td><td>forbidden</td><td>AUTH</td></tr>
- *      <tr><td>400</td<td>bad-request</td><td>MODIFY</td>></tr>
- *      <tr><td>404</td><td>item-not-found</td><td>CANCEL</td></tr>
- *      <tr><td>409</td><td>conflict</td><td>CANCEL</td></tr>
- *      <tr><td>501</td><td>feature-not-implemented</td><td>CANCEL</td></tr>
- *      <tr><td>302</td><td>gone</td><td>MODIFY</td></tr>
- *      <tr><td>400</td><td>jid-malformed</td><td>MODIFY</td></tr>
- *      <tr><td>406</td><td>no-acceptable</td><td> MODIFY</td></tr>
- *      <tr><td>405</td><td>not-allowed</td><td>CANCEL</td></tr>
- *      <tr><td>401</td><td>not-authorized</td><td>AUTH</td></tr>
- *      <tr><td>402</td><td>payment-required</td><td>AUTH</td></tr>
- *      <tr><td>404</td><td>recipient-unavailable</td><td>WAIT</td></tr>
- *      <tr><td>302</td><td>redirect</td><td>MODIFY</td></tr>
- *      <tr><td>407</td><td>registration-required</td><td>AUTH</td></tr>
- *      <tr><td>404</td><td>remote-server-not-found</td><td>CANCEL</td></tr>
- *      <tr><td>504</td><td>remote-server-timeout</td><td>WAIT</td></tr>
- *      <tr><td>502</td><td>remote-server-error</td><td>CANCEL</td></tr>
- *      <tr><td>500</td><td>resource-constraint</td><td>WAIT</td></tr>
- *      <tr><td>503</td><td>service-unavailable</td><td>CANCEL</td></tr>
- *      <tr><td>407</td><td>subscription-required</td><td>AUTH</td></tr>
- *      <tr><td>500</td><td>undefined-condition</td><td>WAIT</td></tr>
- *      <tr><td>400</td><td>unexpected-condition</td><td>WAIT</td></tr>
- *      <tr><td>408</td><td>request-timeout</td><td>CANCEL</td></tr>
+ *      <hr><td><b>XMPP Error</b></td><td><b>Type</b></td></hr>
+ *      <tr><td>internal-server-error</td><td>WAIT</td></tr>
+ *      <tr><td>forbidden</td><td>AUTH</td></tr>
+ *      <tr><td>bad-request</td><td>MODIFY</td></tr>
+ *      <tr><td>item-not-found</td><td>CANCEL</td></tr>
+ *      <tr><td>conflict</td><td>CANCEL</td></tr>
+ *      <tr><td>feature-not-implemented</td><td>CANCEL</td></tr>
+ *      <tr><td>gone</td><td>MODIFY</td></tr>
+ *      <tr><td>jid-malformed</td><td>MODIFY</td></tr>
+ *      <tr><td>no-acceptable</td><td> MODIFY</td></tr>
+ *      <tr><td>not-allowed</td><td>CANCEL</td></tr>
+ *      <tr><td>not-authorized</td><td>AUTH</td></tr>
+ *      <tr><td>payment-required</td><td>AUTH</td></tr>
+ *      <tr><td>recipient-unavailable</td><td>WAIT</td></tr>
+ *      <tr><td>redirect</td><td>MODIFY</td></tr>
+ *      <tr><td>registration-required</td><td>AUTH</td></tr>
+ *      <tr><td>remote-server-not-found</td><td>CANCEL</td></tr>
+ *      <tr><td>remote-server-timeout</td><td>WAIT</td></tr>
+ *      <tr><td>remote-server-error</td><td>CANCEL</td></tr>
+ *      <tr><td>resource-constraint</td><td>WAIT</td></tr>
+ *      <tr><td>service-unavailable</td><td>CANCEL</td></tr>
+ *      <tr><td>subscription-required</td><td>AUTH</td></tr>
+ *      <tr><td>undefined-condition</td><td>WAIT</td></tr>
+ *      <tr><td>unexpected-condition</td><td>WAIT</td></tr>
+ *      <tr><td>request-timeout</td><td>CANCEL</td></tr>
  * </table>
  *
  * @author Matt Tucker
  */
 public class XMPPError {
 
-    private int code;
+    private int code = -1;
     private Type type;
     private String condition;
     private String message;
@@ -196,10 +196,15 @@ public class XMPPError {
      */
     public String toXML() {
         StringBuilder buf = new StringBuilder();
-        buf.append("<error code=\"").append(code).append("\"");
+        buf.append("<error");
+        if (code >= 0) {
+            buf.append(" code=\"");
+            buf.append(code);
+            buf.append("\"");
+        }
         if (type != null) {
             buf.append(" type=\"");
-            buf.append(type.name());
+            buf.append(type.name().toLowerCase());
             buf.append("\"");
         }
         buf.append(">");
