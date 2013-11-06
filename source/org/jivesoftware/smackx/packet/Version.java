@@ -20,7 +20,18 @@
 
 package org.jivesoftware.smackx.packet;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
+
+import org.jivesoftware.smack.Connection;
+import org.jivesoftware.smack.PacketListener;
+import org.jivesoftware.smack.filter.PacketTypeFilter;
 import org.jivesoftware.smack.packet.IQ;
+import org.jivesoftware.smack.packet.Packet;
+import org.jivesoftware.smack.provider.IQProvider;
+import org.jivesoftware.smackx.ServiceDiscoveryManager;
+import org.xmlpull.v1.XmlPullParser;
 
 /**
  * A Version IQ packet, which is used by XMPP clients to discover version information
@@ -49,10 +60,34 @@ import org.jivesoftware.smack.packet.IQ;
  * @author Gaston Dombiak
  */
 public class Version extends IQ {
+    public static final String NAMESPACE = "jabber:iq:version";
+    public static final String ELEMENT = "ping";
 
     private String name;
     private String version;
     private String os;
+
+    /**
+     * Creates a new Version object with given details.
+     *
+     * @param name The natural-language name of the software. This element is REQUIRED.
+     * @param version The specific version of the software. This element is REQUIRED.
+     * @param os The operating system of the queried entity. This element is OPTIONAL.
+     */
+    public Version(String name, String version, String os) {
+        this.setType(IQ.Type.RESULT);
+        this.name = name;
+        this.version = version;
+        this.os = os;
+    }
+
+    private Version(Version original) {
+        this(original.name, original.version, original.os);
+    }
+
+    private Version() {
+        super();
+    }
 
     /**
      * Returns the natural-language name of the software. This property will always be
@@ -128,5 +163,88 @@ public class Version extends IQ {
         }
         buf.append("</query>");
         return buf.toString();
+    }
+
+    public static class Provider implements IQProvider {
+        public IQ parseIQ(XmlPullParser parser) throws Exception {
+            Version v = new Version();
+
+            boolean done = false;
+            while (!done) {
+                int eventType = parser.next();
+                if (eventType == XmlPullParser.START_TAG && parser.getName().equals("name")) {
+                    v.setName(parser.nextText());
+                }
+                else if (eventType == XmlPullParser.START_TAG && parser.getName().equals("version")) {
+                    v.setVersion(parser.nextText());
+                }
+                else if (eventType == XmlPullParser.START_TAG && parser.getName().equals("os")) {
+                    v.setOs(parser.nextText());
+                }
+                else if (eventType == XmlPullParser.END_TAG && parser.getName().equals("query")) {
+                    done = true;
+                }
+            }
+            return v;
+        }
+    }
+
+    public static class Manager {
+        private static final Map<Connection, Manager> instances =
+                Collections.synchronizedMap(new WeakHashMap<Connection, Manager>());
+
+        private Version own_version;
+        private Connection connection;
+
+        // IQ Flood protection
+        private long iqMinDelta = 100;
+        private long lastIqStamp = 0; // timestamp of the last received IQ
+
+        private Manager(final Connection connection) {
+            this.connection = connection;
+            instances.put(connection, this);
+
+            ServiceDiscoveryManager sdm = ServiceDiscoveryManager.getInstanceFor(connection);
+            sdm.addFeature(Version.NAMESPACE);
+
+            connection.addPacketListener(new PacketListener() {
+                /**
+                 * Sends a Version reply on request
+                 */
+                public void processPacket(Packet packet) {
+                    if (own_version == null)
+                        return;
+                    if (iqMinDelta > 0) {
+                        // Ping flood protection enabled
+                        long currentMillies = System.currentTimeMillis();
+                        long delta = currentMillies - lastIqStamp;
+                        lastIqStamp = currentMillies;
+                        if (delta < iqMinDelta) {
+                            return;
+                        }
+                    }
+                    Version reply = new Version(own_version);
+                    reply.setPacketID(packet.getPacketID());
+                    reply.setFrom(packet.getTo());
+                    reply.setTo(packet.getFrom());
+                    connection.sendPacket(reply);
+                }
+            }
+            , new PacketTypeFilter(Version.class));
+        }
+
+        public static synchronized Manager getInstanceFor(Connection connection) {
+            Manager manager = instances.get(connection);
+
+            if (manager == null) {
+                manager = new Manager(connection);
+            }
+
+            return manager;
+        }
+
+        public void setVersion(Version v) {
+            own_version = v;
+        }
     }
 }
