@@ -40,14 +40,12 @@ public class BOSHConfiguration extends ConnectionConfiguration {
 
     public BOSHConfiguration(String xmppDomain) {
         super(xmppDomain, 7070);
-        setSASLAuthenticationEnabled(true);
         ssl = false;
         file = "/http-bind/";
     }
 
     public BOSHConfiguration(String xmppDomain, int port) {
         super(xmppDomain, port);
-        setSASLAuthenticationEnabled(true);
         ssl = false;
         file = "/http-bind/";
     }
@@ -68,7 +66,6 @@ public class BOSHConfiguration extends ConnectionConfiguration {
      */
     public BOSHConfiguration(boolean https, String host, int port, String filePath, String xmppDomain) {
         super(host, port, xmppDomain);
-        setSASLAuthenticationEnabled(true);
         ssl = https;
         file = (filePath != null ? filePath : "/");
     }
@@ -90,7 +87,6 @@ public class BOSHConfiguration extends ConnectionConfiguration {
      */
     public BOSHConfiguration(boolean https, String host, int port, String filePath, ProxyInfo proxy, String xmppDomain) {
         super(host, port, xmppDomain, proxy);
-        setSASLAuthenticationEnabled(true);
         ssl = https;
         file = (filePath != null ? filePath : "/");
     }
