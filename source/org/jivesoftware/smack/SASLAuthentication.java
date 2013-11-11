@@ -37,9 +37,8 @@ import java.util.*;
  * to the connection and establishing a session with the server.</p>
  *
  * <p>Once TLS has been negotiated (i.e. the connection has been secured) it is possible to
- * register with the server, authenticate using Non-SASL or authenticate using SASL. If the
- * server supports SASL then Smack will first try to authenticate using SASL. But if that
- * fails then Non-SASL will be tried.</p>
+ * register with the server or authenticate using SASL. If the server does not support
+ * SASL then Smack will throw an XMPPException.</p>
  *
  * <p>The server may support many SASL mechanisms to use for authenticating. Out of the box
  * Smack provides several SASL mechanisms, but it is possible to register new SASL Mechanisms. Use
@@ -248,7 +247,7 @@ public class SASLAuthentication implements UserAuthentication {
                     }
                 }
 
-                if (saslFailed) {
+                if (!saslNegotiated) {
                     // SASL authentication failed and the server may have closed the connection
                     // so throw an exception
                     if (errorCondition != null) {
@@ -259,13 +258,9 @@ public class SASLAuthentication implements UserAuthentication {
                         throw new XMPPException("SASL authentication failed using mechanism " +
                                 selectedMechanism);
                     }
-                }
-
-                if (saslNegotiated) {
+                } else {
                     // Bind a resource for this connection and
                     return bindResourceAndEstablishSession(resource);
-                } else {
-                    // SASL authentication failed
                 }
             }
             catch (XMPPException e) {
@@ -330,7 +325,7 @@ public class SASLAuthentication implements UserAuthentication {
                     }
                 }
 
-                if (saslFailed) {
+                if (!saslNegotiated) {
                     // SASL authentication failed and the server may have closed the connection
                     // so throw an exception
                     if (errorCondition != null) {
@@ -341,16 +336,9 @@ public class SASLAuthentication implements UserAuthentication {
                         throw new XMPPException("SASL authentication failed using mechanism " +
                                 selectedMechanism);
                     }
-                }
-
-                if (saslNegotiated) {
+                } else {
                     // Bind a resource for this connection and
                     return bindResourceAndEstablishSession(resource);
-                }
-                else {
-                    // SASL authentication failed so try a Non-SASL authentication
-                    return new NonSASLAuthentication(connection)
-                            .authenticate(username, password, resource);
                 }
             }
             catch (XMPPException e) {
@@ -358,14 +346,12 @@ public class SASLAuthentication implements UserAuthentication {
             }
             catch (Exception e) {
                 e.printStackTrace();
-                // SASL authentication failed so try a Non-SASL authentication
-                return new NonSASLAuthentication(connection)
-                        .authenticate(username, password, resource);
+                // SASL authentication failed so bail out
+                throw new XMPPException("SASL authentication failed", e);
             }
         }
         else {
-            // No SASL method was found so try a Non-SASL authentication
-            return new NonSASLAuthentication(connection).authenticate(username, password, resource);
+            throw new XMPPException("No supported SASL authentication mechanism available.");
         }
     }
 
@@ -397,7 +383,7 @@ public class SASLAuthentication implements UserAuthentication {
                 }
             }
 
-            if (saslFailed) {
+            if (!saslNegotiated) {
                 // SASL authentication failed and the server may have closed the connection
                 // so throw an exception
                 if (errorCondition != null) {
@@ -406,17 +392,12 @@ public class SASLAuthentication implements UserAuthentication {
                 else {
                     throw new XMPPException("SASL authentication failed");
                 }
-            }
-
-            if (saslNegotiated) {
+            } else {
                 // Bind a resource for this connection and
                 return bindResourceAndEstablishSession(null);
             }
-            else {
-                return new NonSASLAuthentication(connection).authenticateAnonymously();
-            }
         } catch (IOException e) {
-            return new NonSASLAuthentication(connection).authenticateAnonymously();
+            throw new XMPPException("SASL authentication failed", e);
         }
     }
 
