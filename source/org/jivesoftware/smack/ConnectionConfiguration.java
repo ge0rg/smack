@@ -37,7 +37,7 @@ import java.util.List;
  * configure the path to the trustore file that keeps the trusted CA root certificates and
  * enable or disable all or some of the checkings done while verifying server certificates.<p>
  *
- * It is also possible to configure if TLS, SASL, and compression are used or not.
+ * It is also possible to configure if TLS and compression are used or not.
  *
  * @author Gaston Dombiak
  */
@@ -70,7 +70,6 @@ public class ConnectionConfiguration implements Cloneable {
 
     private boolean compressionEnabled = false;
 
-    private boolean saslAuthenticationEnabled = true;
     /**
      * Used to get information from the user
      */
@@ -548,30 +547,6 @@ public class ConnectionConfiguration implements Cloneable {
      */
     public void setCompressionEnabled(boolean compressionEnabled) {
         this.compressionEnabled = compressionEnabled;
-    }
-
-    /**
-     * Returns true if the client is going to use SASL authentication when logging into the
-     * server. If SASL authenticatin fails then the client will try to use non-sasl authentication.
-     * By default SASL is enabled.
-     *
-     * @return true if the client is going to use SASL authentication when logging into the
-     *         server.
-     */
-    public boolean isSASLAuthenticationEnabled() {
-        return saslAuthenticationEnabled;
-    }
-
-    /**
-     * Sets whether the client will use SASL authentication when logging into the
-     * server. If SASL authenticatin fails then the client will try to use non-sasl authentication.
-     * By default, SASL is enabled.
-     *
-     * @param saslAuthenticationEnabled if the client is going to use SASL authentication when
-     *        logging into the server.
-     */
-    public void setSASLAuthenticationEnabled(boolean saslAuthenticationEnabled) {
-        this.saslAuthenticationEnabled = saslAuthenticationEnabled;
     }
 
     /**
