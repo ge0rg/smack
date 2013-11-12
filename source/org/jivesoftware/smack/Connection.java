@@ -484,6 +484,28 @@ public abstract class Connection {
 
     }
 
+    protected void perform_sasl_anon() throws XMPPException {
+        if (!isConnected()) {
+            throw new IllegalStateException("Not connected to server.");
+        }
+        if (authenticated) {
+            throw new IllegalStateException("Already logged in to server.");
+        }
+
+        String response;
+        if (saslAuthentication.hasAnonymousAuthentication()) {
+            response = saslAuthentication.authenticateAnonymously();
+        }
+        else {
+            throw new XMPPException("No anonymous SASL authentication available.");
+        }
+
+        // Set the user value.
+        this.user = response;
+        // Update the serviceName with the one returned by the server
+        config.setServiceName(StringUtils.parseServer(response));
+    }
+
     /**
      * Binds a resource after authentication was completed. This function is called internally by
      * login() or loginAnonymously() to bind a resource.
