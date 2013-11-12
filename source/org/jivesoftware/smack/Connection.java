@@ -568,6 +568,38 @@ public abstract class Connection {
         sessionSupported = true;
     }
     
+    /**
+     * Perform the post-bind login steps. This function is called internally by
+     * login() or loginAnonymously().
+     */
+    protected void perform_rosterload() throws XMPPException {
+        // Create the roster if it is not a reconnection or roster already created by getRoster()
+        if (this.roster == null) {
+            if (rosterStorage==null) {
+                this.roster = new Roster(this);
+            } else {
+                this.roster = new Roster(this,rosterStorage);
+            }
+        }
+        if (config.isRosterLoadedAtLogin()) {
+            this.roster.reload();
+        }
+    }
+
+    protected void complete_login() throws XMPPException {
+        // Set presence to online.
+        if (config.isSendPresence()) {
+            packetWriter.sendPacket(new Presence(Presence.Type.available));
+        }
+
+        // If debugging is enabled, change the the debug window title to include the
+        // name we are now logged-in as.
+        // If DEBUG_ENABLED was set to true AFTER the connection was created the debugger
+        // will be null
+        if (config.isDebuggerEnabled() && debugger != null) {
+            debugger.userHasLogged(user);
+        }
+    }
 
     /**
      * Sends the specified packet to the server.

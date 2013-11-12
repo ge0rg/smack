@@ -297,37 +297,15 @@ public class BOSHConnection extends Connection {
         perform_sasl(username, password);
         perform_bind(resource);
 
-        // Create the roster if it is not a reconnection.
-        if (this.roster == null) {
-            if (this.rosterStorage == null) {
-                this.roster = new Roster(this);
-            } else {
-                this.roster = new Roster(this, rosterStorage);
-            }
-        }
-
-        // Set presence to online.
-        if (config.isSendPresence()) {
-            sendPacket(new Presence(Presence.Type.available));
-        }
+        // Stores the autentication for future reconnection
+        config.setLoginInfo(username, password, resource);
 
         // Indicate that we're now authenticated.
         authenticated = true;
         anonymous = false;
 
-        if (config.isRosterLoadedAtLogin()) {
-            this.roster.reload();
-        }
-        // Stores the autentication for future reconnection
-        config.setLoginInfo(username, password, resource);
-
-        // If debugging is enabled, change the the debug window title to include
-        // the
-        // name we are now logged-in as.l
-        if (config.isDebuggerEnabled() && debugger != null) {
-            debugger.userHasLogged(user);
-        }
-
+        perform_rosterload();
+        complete_login();
     }
 
     @Override
@@ -335,25 +313,13 @@ public class BOSHConnection extends Connection {
         perform_sasl_anon();
         perform_bind(null);
 
-        // Anonymous users can't have a roster.
-        roster = null;
-
-        // Set presence to online.
-        if (config.isSendPresence()) {
-            sendPacket(new Presence(Presence.Type.available));
-        }
-
         // Indicate that we're now authenticated.
         authenticated = true;
         anonymous = true;
+        // Anonymous users can't have a roster.
+        roster = null;
 
-        // If debugging is enabled, change the the debug window title to include the
-        // name we are now logged-in as.
-        // If DEBUG_ENABLED was set to true AFTER the connection was created the debugger
-        // will be null
-        if (config.isDebuggerEnabled() && debugger != null) {
-            debugger.userHasLogged(user);
-        }
+        complete_login();
     }
 
     public void sendPacket(Packet packet) {
