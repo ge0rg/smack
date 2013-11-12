@@ -20,11 +20,7 @@
 
 package org.jivesoftware.smack;
 
-import org.jivesoftware.smack.filter.PacketIDFilter;
-import org.jivesoftware.smack.packet.Bind;
-import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Packet;
-import org.jivesoftware.smack.packet.Session;
 import org.jivesoftware.smack.sasl.*;
 
 import javax.security.auth.callback.CallbackHandler;
@@ -37,9 +33,8 @@ import java.util.*;
  * to the connection and establishing a session with the server.</p>
  *
  * <p>Once TLS has been negotiated (i.e. the connection has been secured) it is possible to
- * register with the server, authenticate using Non-SASL or authenticate using SASL. If the
- * server supports SASL then Smack will first try to authenticate using SASL. But if that
- * fails then Non-SASL will be tried.</p>
+ * register with the server or authenticate using SASL. If the server does not support
+ * SASL then Smack will throw an XMPPException.</p>
  *
  * <p>The server may support many SASL mechanisms to use for authenticating. Out of the box
  * Smack provides several SASL mechanisms, but it is possible to register new SASL Mechanisms. Use
@@ -61,7 +56,7 @@ import java.util.*;
  * @author Gaston Dombiak
  * @author Jay Kline
  */
-public class SASLAuthentication implements UserAuthentication {
+public class SASLAuthentication {
 
     private static Map<String, Class<? extends SASLMechanism>> implementedMechanisms = new HashMap<String, Class<? extends SASLMechanism>>();
     private static List<String> mechanismsPreferences = new ArrayList<String>();
@@ -78,8 +73,6 @@ public class SASLAuthentication implements UserAuthentication {
      * the connection.
      */
     private boolean saslFailed;
-    private boolean resourceBinded;
-    private boolean sessionSupported;
     /**
      * The SASL related error condition if there was one provided by the server.
      */
@@ -208,12 +201,11 @@ public class SASLAuthentication implements UserAuthentication {
      * by this method.
      *
      * @param username the username that is authenticating with the server.
-     * @param resource the desired resource.
      * @param cbh the CallbackHandler used to get information from the user
      * @return the full JID provided by the server while binding a resource to the connection.
      * @throws XMPPException if an error occures while authenticating.
      */
-    public String authenticate(String username, String resource, CallbackHandler cbh) 
+    public String authenticate(String username, CallbackHandler cbh)
             throws XMPPException {
         // Locate the SASLMechanism to use
         String selectedMechanism = null;
@@ -248,7 +240,7 @@ public class SASLAuthentication implements UserAuthentication {
                     }
                 }
 
-                if (saslFailed) {
+                if (!saslNegotiated) {
                     // SASL authentication failed and the server may have closed the connection
                     // so throw an exception
                     if (errorCondition != null) {
@@ -259,13 +251,6 @@ public class SASLAuthentication implements UserAuthentication {
                         throw new XMPPException("SASL authentication failed using mechanism " +
                                 selectedMechanism);
                     }
-                }
-
-                if (saslNegotiated) {
-                    // Bind a resource for this connection and
-                    return bindResourceAndEstablishSession(resource);
-                } else {
-                    // SASL authentication failed
                 }
             }
             catch (XMPPException e) {
@@ -291,11 +276,9 @@ public class SASLAuthentication implements UserAuthentication {
      *
      * @param username the username that is authenticating with the server.
      * @param password the password to send to the server.
-     * @param resource the desired resource.
-     * @return the full JID provided by the server while binding a resource to the connection.
      * @throws XMPPException if an error occures while authenticating.
      */
-    public String authenticate(String username, String password, String resource)
+    public void authenticate(String username, String password)
             throws XMPPException {
         // Locate the SASLMechanism to use
         String selectedMechanism = null;
@@ -308,7 +291,7 @@ public class SASLAuthentication implements UserAuthentication {
         }
         if (selectedMechanism != null) {
             // A SASL mechanism was found. Authenticate using the selected mechanism and then
-            // proceed to bind a resource
+            // return
             try {
                 Class<? extends SASLMechanism> mechanismClass = implementedMechanisms.get(selectedMechanism);
                 Constructor<? extends SASLMechanism> constructor = mechanismClass.getConstructor(SASLAuthentication.class);
@@ -330,7 +313,7 @@ public class SASLAuthentication implements UserAuthentication {
                     }
                 }
 
-                if (saslFailed) {
+                if (!saslNegotiated) {
                     // SASL authentication failed and the server may have closed the connection
                     // so throw an exception
                     if (errorCondition != null) {
@@ -342,30 +325,18 @@ public class SASLAuthentication implements UserAuthentication {
                                 selectedMechanism);
                     }
                 }
-
-                if (saslNegotiated) {
-                    // Bind a resource for this connection and
-                    return bindResourceAndEstablishSession(resource);
-                }
-                else {
-                    // SASL authentication failed so try a Non-SASL authentication
-                    return new NonSASLAuthentication(connection)
-                            .authenticate(username, password, resource);
-                }
             }
             catch (XMPPException e) {
                 throw e;
             }
             catch (Exception e) {
                 e.printStackTrace();
-                // SASL authentication failed so try a Non-SASL authentication
-                return new NonSASLAuthentication(connection)
-                        .authenticate(username, password, resource);
+                // SASL authentication failed so bail out
+                throw new XMPPException("SASL authentication failed", e);
             }
         }
         else {
-            // No SASL method was found so try a Non-SASL authentication
-            return new NonSASLAuthentication(connection).authenticate(username, password, resource);
+            throw new XMPPException("No supported SASL authentication mechanism available.");
         }
     }
 
@@ -377,10 +348,9 @@ public class SASLAuthentication implements UserAuthentication {
      * The server will assign a full JID with a randomly generated resource and possibly with
      * no username.
      *
-     * @return the full JID provided by the server while binding a resource to the connection.
      * @throws XMPPException if an error occures while authenticating.
      */
-    public String authenticateAnonymously() throws XMPPException {
+    public void authenticateAnonymously() throws XMPPException {
         try {
             currentMechanism = new SASLAnonymous(this);
             currentMechanism.authenticate(null,null,"");
@@ -397,7 +367,7 @@ public class SASLAuthentication implements UserAuthentication {
                 }
             }
 
-            if (saslFailed) {
+            if (!saslNegotiated) {
                 // SASL authentication failed and the server may have closed the connection
                 // so throw an exception
                 if (errorCondition != null) {
@@ -407,76 +377,9 @@ public class SASLAuthentication implements UserAuthentication {
                     throw new XMPPException("SASL authentication failed");
                 }
             }
-
-            if (saslNegotiated) {
-                // Bind a resource for this connection and
-                return bindResourceAndEstablishSession("");
-            }
-            else {
-                return new NonSASLAuthentication(connection).authenticateAnonymously();
-            }
         } catch (IOException e) {
-            return new NonSASLAuthentication(connection).authenticateAnonymously();
+            throw new XMPPException("SASL authentication failed", e);
         }
-    }
-
-    private String bindResourceAndEstablishSession(String resource) throws XMPPException {
-	// do not bind if null resource. use "" instead
-	if (resource == null)
-	    return null;
-        // Wait until server sends response containing the <bind> element
-        synchronized (this) {
-            if (!resourceBinded) {
-                try {
-                    wait(30000);
-                }
-                catch (InterruptedException e) {
-                    // Ignore
-                }
-            }
-        }
-
-        if (!resourceBinded) {
-            // Server never offered resource binding
-            throw new XMPPException("Resource binding not offered by server");
-        }
-
-        Bind bindResource = new Bind();
-        bindResource.setResource(resource);
-
-        PacketCollector collector = connection
-                .createPacketCollector(new PacketIDFilter(bindResource.getPacketID()));
-        // Send the packet
-        connection.sendPacket(bindResource);
-        // Wait up to a certain number of seconds for a response from the server.
-        Bind response = (Bind) collector.nextResult(SmackConfiguration.getPacketReplyTimeout());
-        collector.cancel();
-        if (response == null) {
-            throw new XMPPException("No response from the server.");
-        }
-        // If the server replied with an error, throw an exception.
-        else if (response.getType() == IQ.Type.ERROR) {
-            throw new XMPPException(response.getError());
-        }
-        String userJID = response.getJid();
-
-        if (sessionSupported) {
-            Session session = new Session();
-            collector = connection.createPacketCollector(new PacketIDFilter(session.getPacketID()));
-            // Send the packet
-            connection.sendPacket(session);
-            // Wait up to a certain number of seconds for a response from the server.
-            IQ ack = (IQ) collector.nextResult(SmackConfiguration.getPacketReplyTimeout());
-            collector.cancel();
-            if (ack == null) {
-                throw new XMPPException("No response from the server.");
-            }
-            // If the server replied with an error, throw an exception.
-            else if (ack.getType() == IQ.Type.ERROR) {
-                throw new XMPPException(ack.getError());
-            }
-        }
-        return userJID;
     }
 
     /**
@@ -550,31 +453,10 @@ public class SASLAuthentication implements UserAuthentication {
         }
     }
 
-    /**
-     * Notification message saying that the server requires the client to bind a
-     * resource to the stream.
-     */
-    void bindingRequired() {
-        synchronized (this) {
-            resourceBinded = true;
-            // Wake up the thread that is waiting in the #authenticate method
-            notify();
-        }
-    }
-
     public void send(Packet stanza) {
         connection.sendPacket(stanza);
     }
 
-    /**
-     * Notification message saying that the server supports sessions. When a server supports
-     * sessions the client needs to send a Session packet after successfully binding a resource
-     * for the session.
-     */
-    void sessionsSupported() {
-        sessionSupported = true;
-    }
-    
     /**
      * Initializes the internal state in order to be able to be reused. The authentication
      * is used by the connection at the first login and then reused after the connection
@@ -583,7 +465,8 @@ public class SASLAuthentication implements UserAuthentication {
     protected void init() {
         saslNegotiated = false;
         saslFailed = false;
-        resourceBinded = false;
-        sessionSupported = false;
+	// XXX HACK TODO
+        connection.resourceBinded = false;
+        connection.sessionSupported = false;
     }
 }

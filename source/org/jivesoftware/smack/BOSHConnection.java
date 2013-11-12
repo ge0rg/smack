@@ -81,7 +81,6 @@ public class BOSHConnection extends Connection {
 
     // Some flags which provides some info about the current state.
     private boolean connected = false;
-    private boolean authenticated = false;
     private boolean anonymous = false;
     private boolean isFirstInitialization = true;
     private boolean wasAuthenticated = false;
@@ -105,11 +104,6 @@ public class BOSHConnection extends Connection {
      * The session ID for the BOSH session with the connection manager.
      */
     protected String sessionID = null;
-
-    /**
-     * The full JID of the authenticated user.
-     */
-    private String user = null;
 
     /**
      * The roster maybe also called buddy list holds the list of the users contacts.
@@ -283,10 +277,6 @@ public class BOSHConnection extends Connection {
         return anonymous;
     }
 
-    public boolean isAuthenticated() {
-        return authenticated;
-    }
-
     public boolean isConnected() {
         return connected;
     }
@@ -301,42 +291,11 @@ public class BOSHConnection extends Connection {
         return false;
     }
 
+    @Override
     public void login(String username, String password, String resource)
             throws XMPPException {
-        if (!isConnected()) {
-            throw new IllegalStateException("Not connected to server.");
-        }
-        if (authenticated) {
-            throw new IllegalStateException("Already logged in to server.");
-        }
-        // Do partial version of nameprep on the username.
-        username = username.toLowerCase().trim();
-
-        String response;
-        if (config.isSASLAuthenticationEnabled()
-                && saslAuthentication.hasNonAnonymousAuthentication()) {
-            // Authenticate using SASL
-            if (password != null) {
-                response = saslAuthentication.authenticate(username, password, resource);
-            } else {
-                response = saslAuthentication.authenticate(username, resource, config.getCallbackHandler());
-            }
-        } else {
-            // Authenticate using Non-SASL
-            response = new NonSASLAuthentication(this).authenticate(username, password, resource);
-        }
-
-        // Set the user.
-        if (response != null) {
-            this.user = response;
-            // Update the serviceName with the one returned by the server
-            config.setServiceName(StringUtils.parseServer(response));
-        } else {
-            this.user = username + "@" + getServiceName();
-            if (resource != null) {
-                this.user += "/" + resource;
-            }
-        }
+        perform_sasl(username, password);
+        perform_bind(resource);
 
         // Create the roster if it is not a reconnection.
         if (this.roster == null) {
@@ -368,30 +327,13 @@ public class BOSHConnection extends Connection {
         if (config.isDebuggerEnabled() && debugger != null) {
             debugger.userHasLogged(user);
         }
+
     }
 
+    @Override
     public void loginAnonymously() throws XMPPException {
-    	if (!isConnected()) {
-            throw new IllegalStateException("Not connected to server.");
-        }
-        if (authenticated) {
-            throw new IllegalStateException("Already logged in to server.");
-        }
-
-        String response;
-        if (config.isSASLAuthenticationEnabled() &&
-                saslAuthentication.hasAnonymousAuthentication()) {
-            response = saslAuthentication.authenticateAnonymously();
-        }
-        else {
-            // Authenticate using Non-SASL
-            response = new NonSASLAuthentication(this).authenticateAnonymously();
-        }
-
-        // Set the user value.
-        this.user = response;
-        // Update the serviceName with the one returned by the server
-        config.setServiceName(StringUtils.parseServer(response));
+        perform_sasl_anon();
+        perform_bind(null);
 
         // Anonymous users can't have a roster.
         roster = null;
