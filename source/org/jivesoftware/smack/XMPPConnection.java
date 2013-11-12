@@ -220,12 +220,13 @@ public class XMPPConnection extends Connection {
     public synchronized void login(String username, String password, String resource)
             throws XMPPException {
         perform_sasl(username, password);
-        perform_bind(resource);
 
         // If compression is enabled then request the server to use stream compression
         if (config.isCompressionEnabled()) {
             useCompression();
         }
+
+        perform_bind(resource);
 
         // Indicate that we're now authenticated.
         authenticated = true;
@@ -264,12 +265,13 @@ public class XMPPConnection extends Connection {
     @Override
     public synchronized void loginAnonymously() throws XMPPException {
         perform_sasl_anon();
-        perform_bind(null);
 
         // If compression is enabled then request the server to use stream compression
         if (config.isCompressionEnabled()) {
             useCompression();
         }
+
+        perform_bind(null);
 
         // Set presence to online.
         packetWriter.sendPacket(new Presence(Presence.Type.available));
