@@ -201,12 +201,11 @@ public class SASLAuthentication {
      * by this method.
      *
      * @param username the username that is authenticating with the server.
-     * @param resource the desired resource.
      * @param cbh the CallbackHandler used to get information from the user
      * @return the full JID provided by the server while binding a resource to the connection.
      * @throws XMPPException if an error occures while authenticating.
      */
-    public String authenticate(String username, String resource, CallbackHandler cbh) 
+    public String authenticate(String username, CallbackHandler cbh)
             throws XMPPException {
         // Locate the SASLMechanism to use
         String selectedMechanism = null;
@@ -252,9 +251,6 @@ public class SASLAuthentication {
                         throw new XMPPException("SASL authentication failed using mechanism " +
                                 selectedMechanism);
                     }
-                } else {
-                    // Bind a resource for this connection and
-                    return connection.perform_bind(resource);
                 }
             }
             catch (XMPPException e) {
@@ -280,11 +276,9 @@ public class SASLAuthentication {
      *
      * @param username the username that is authenticating with the server.
      * @param password the password to send to the server.
-     * @param resource the desired resource.
-     * @return the full JID provided by the server while binding a resource to the connection.
      * @throws XMPPException if an error occures while authenticating.
      */
-    public String authenticate(String username, String password, String resource)
+    public void authenticate(String username, String password)
             throws XMPPException {
         // Locate the SASLMechanism to use
         String selectedMechanism = null;
@@ -297,7 +291,7 @@ public class SASLAuthentication {
         }
         if (selectedMechanism != null) {
             // A SASL mechanism was found. Authenticate using the selected mechanism and then
-            // proceed to bind a resource
+            // return
             try {
                 Class<? extends SASLMechanism> mechanismClass = implementedMechanisms.get(selectedMechanism);
                 Constructor<? extends SASLMechanism> constructor = mechanismClass.getConstructor(SASLAuthentication.class);
@@ -330,9 +324,6 @@ public class SASLAuthentication {
                         throw new XMPPException("SASL authentication failed using mechanism " +
                                 selectedMechanism);
                     }
-                } else {
-                    // Bind a resource for this connection and
-                    return connection.perform_bind(resource);
                 }
             }
             catch (XMPPException e) {
@@ -357,10 +348,9 @@ public class SASLAuthentication {
      * The server will assign a full JID with a randomly generated resource and possibly with
      * no username.
      *
-     * @return the full JID provided by the server while binding a resource to the connection.
      * @throws XMPPException if an error occures while authenticating.
      */
-    public String authenticateAnonymously() throws XMPPException {
+    public void authenticateAnonymously() throws XMPPException {
         try {
             currentMechanism = new SASLAnonymous(this);
             currentMechanism.authenticate(null,null,"");
@@ -386,9 +376,6 @@ public class SASLAuthentication {
                 else {
                     throw new XMPPException("SASL authentication failed");
                 }
-            } else {
-                // Bind a resource for this connection and
-                return connection.perform_bind(null);
             }
         } catch (IOException e) {
             throw new XMPPException("SASL authentication failed", e);

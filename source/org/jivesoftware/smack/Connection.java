@@ -437,13 +437,10 @@ public abstract class Connection {
      *
      * @param username user name for authentication.
      * @param password password for authentication.
-     * @param resource the resource to bind.
      * @throws XMPPException when login fails
      * @throws IllegalStateException when already authenticated or not yet connected.
-     *
-     * @return the full JID that the connection was bound to by the server.
      */
-    protected void perform_sasl(String username, String password, String resource) throws XMPPException {
+    protected void perform_sasl(String username, String password) throws XMPPException {
         if (!isConnected()) {
             throw new IllegalStateException("Not connected to server.");
         }
@@ -453,35 +450,19 @@ public abstract class Connection {
         // Do partial version of nameprep on the username.
         username = username.toLowerCase().trim();
 
-        String response;
         if (saslAuthentication.hasNonAnonymousAuthentication()) {
             // Authenticate using SASL
             if (password != null) {
-                response = saslAuthentication.authenticate(username, password, resource);
+                saslAuthentication.authenticate(username, password);
             }
             else {
-                response = saslAuthentication
-                        .authenticate(username, resource, config.getCallbackHandler());
+                saslAuthentication.authenticate(username, config.getCallbackHandler());
             }
         }
         else {
             // No SASL auth availabe, Non-SASL is deprecated
             throw new XMPPException("No SASL authentication mechanism available.");
         }
-
-        // Set the user.
-        if (response != null) {
-            this.user = response;
-            // Update the serviceName with the one returned by the server
-            config.setServiceName(StringUtils.parseServer(response));
-        }
-        else {
-            this.user = username + "@" + getServiceName();
-            if (resource != null) {
-                this.user += "/" + resource;
-            }
-        }
-
     }
 
     protected void perform_sasl_anon() throws XMPPException {
@@ -492,18 +473,12 @@ public abstract class Connection {
             throw new IllegalStateException("Already logged in to server.");
         }
 
-        String response;
         if (saslAuthentication.hasAnonymousAuthentication()) {
-            response = saslAuthentication.authenticateAnonymously();
+            saslAuthentication.authenticateAnonymously();
         }
         else {
             throw new XMPPException("No anonymous SASL authentication available.");
         }
-
-        // Set the user value.
-        this.user = response;
-        // Update the serviceName with the one returned by the server
-        config.setServiceName(StringUtils.parseServer(response));
     }
 
     /**
@@ -513,10 +488,8 @@ public abstract class Connection {
      * @param resource name of the XMPP resource to bind.
      * @throws XMPPException when binding fails.
      * @throws IllegalStateException when already bound or not yet authenticated.
-     *
-     * @return the full JID that the connection was bound to by the server.
      */
-    protected String perform_bind(String resource) throws XMPPException {
+    protected void perform_bind(String resource) throws XMPPException {
         // Wait until server sends response containing the <bind> element
         synchronized (this) {
             if (!resourceBinded) {
@@ -552,6 +525,9 @@ public abstract class Connection {
             throw new XMPPException(response.getError());
         }
         String userJID = response.getJid();
+        this.user = userJID;
+        // Update the serviceName with the one returned by the server
+        config.setServiceName(StringUtils.parseServer(userJID));
 
         if (sessionSupported) {
             Session session = new Session();
@@ -569,7 +545,6 @@ public abstract class Connection {
                 throw new XMPPException(ack.getError());
             }
         }
-        return userJID;
     }
 
     /**

@@ -294,7 +294,8 @@ public class BOSHConnection extends Connection {
     @Override
     public void login(String username, String password, String resource)
             throws XMPPException {
-        perform_sasl(username, password, resource);
+        perform_sasl(username, password);
+        perform_bind(resource);
 
         // Create the roster if it is not a reconnection.
         if (this.roster == null) {
@@ -326,11 +327,13 @@ public class BOSHConnection extends Connection {
         if (config.isDebuggerEnabled() && debugger != null) {
             debugger.userHasLogged(user);
         }
+
     }
 
     @Override
     public void loginAnonymously() throws XMPPException {
         perform_sasl_anon();
+        perform_bind(null);
 
         // Anonymous users can't have a roster.
         roster = null;
