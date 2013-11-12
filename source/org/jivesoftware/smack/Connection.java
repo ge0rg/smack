@@ -39,9 +39,14 @@ import org.jivesoftware.smack.compression.JzlibInputOutputStream;
 import org.jivesoftware.smack.compression.XMPPInputOutputStream;
 import org.jivesoftware.smack.compression.Java7ZlibInputOutputStream;
 import org.jivesoftware.smack.debugger.SmackDebugger;
+import org.jivesoftware.smack.filter.PacketIDFilter;
 import org.jivesoftware.smack.filter.PacketFilter;
+import org.jivesoftware.smack.packet.Bind;
+import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.Presence;
+import org.jivesoftware.smack.packet.Session;
+import org.jivesoftware.smack.util.StringUtils;
 
 /**
  * The abstract Connection class provides an interface for connections to a
@@ -199,6 +204,16 @@ public abstract class Connection {
     protected SASLAuthentication saslAuthentication = new SASLAuthentication(this);
 
     /**
+     * The full JID of the authenticated user.
+     */
+    protected String user = null;
+
+    /**
+     * Flag that indicates if the user is currently authenticated with the server.
+     */
+    protected boolean authenticated = false;
+
+    /**
      * A number to uniquely identify connections that are created. This is distinct from the
      * connection ID, which is a value sent by the server once a connection is made.
      */
@@ -296,7 +311,9 @@ public abstract class Connection {
      * 
      * @return true if authenticated.
      */
-    public abstract boolean isAuthenticated();
+    public boolean isAuthenticated() {
+        return authenticated;
+    }
 
     /**
      * Returns true if currently authenticated anonymously.
@@ -410,6 +427,150 @@ public abstract class Connection {
      *      to the serrver.
      */
     public abstract void loginAnonymously() throws XMPPException;
+
+    protected boolean resourceBinded = false;
+    protected boolean sessionSupported = false;
+
+    /**
+     * Performs authentication on a connection. This function is called internally as
+     * the first step by login().
+     *
+     * @param username user name for authentication.
+     * @param password password for authentication.
+     * @param resource the resource to bind.
+     * @throws XMPPException when login fails
+     * @throws IllegalStateException when already authenticated or not yet connected.
+     *
+     * @return the full JID that the connection was bound to by the server.
+     */
+    protected void perform_sasl(String username, String password, String resource) throws XMPPException {
+        if (!isConnected()) {
+            throw new IllegalStateException("Not connected to server.");
+        }
+        if (authenticated) {
+            throw new IllegalStateException("Already logged in to server.");
+        }
+        // Do partial version of nameprep on the username.
+        username = username.toLowerCase().trim();
+
+        String response;
+        if (saslAuthentication.hasNonAnonymousAuthentication()) {
+            // Authenticate using SASL
+            if (password != null) {
+                response = saslAuthentication.authenticate(username, password, resource);
+            }
+            else {
+                response = saslAuthentication
+                        .authenticate(username, resource, config.getCallbackHandler());
+            }
+        }
+        else {
+            // No SASL auth availabe, Non-SASL is deprecated
+            throw new XMPPException("No SASL authentication mechanism available.");
+        }
+
+        // Set the user.
+        if (response != null) {
+            this.user = response;
+            // Update the serviceName with the one returned by the server
+            config.setServiceName(StringUtils.parseServer(response));
+        }
+        else {
+            this.user = username + "@" + getServiceName();
+            if (resource != null) {
+                this.user += "/" + resource;
+            }
+        }
+
+    }
+
+    /**
+     * Binds a resource after authentication was completed. This function is called internally by
+     * login() or loginAnonymously() to bind a resource.
+     *
+     * @param resource name of the XMPP resource to bind.
+     * @throws XMPPException when binding fails.
+     * @throws IllegalStateException when already bound or not yet authenticated.
+     *
+     * @return the full JID that the connection was bound to by the server.
+     */
+    protected String perform_bind(String resource) throws XMPPException {
+        // Wait until server sends response containing the <bind> element
+        synchronized (this) {
+            if (!resourceBinded) {
+                try {
+                    wait(30000);
+                }
+                catch (InterruptedException e) {
+                    // Ignore
+                }
+            }
+        }
+
+        if (!resourceBinded) {
+            // Server never offered resource binding
+            throw new XMPPException("Resource binding not offered by server");
+        }
+
+        Bind bindResource = new Bind();
+        bindResource.setResource(resource);
+
+        PacketCollector collector = createPacketCollector(new PacketIDFilter(bindResource.getPacketID()));
+
+        // Send the packet
+        sendPacket(bindResource);
+        // Wait up to a certain number of seconds for a response from the server.
+        Bind response = (Bind) collector.nextResult(SmackConfiguration.getPacketReplyTimeout());
+        collector.cancel();
+        if (response == null) {
+            throw new XMPPException("No response from the server.");
+        }
+        // If the server replied with an error, throw an exception.
+        else if (response.getType() == IQ.Type.ERROR) {
+            throw new XMPPException(response.getError());
+        }
+        String userJID = response.getJid();
+
+        if (sessionSupported) {
+            Session session = new Session();
+            collector = createPacketCollector(new PacketIDFilter(session.getPacketID()));
+            // Send the packet
+            sendPacket(session);
+            // Wait up to a certain number of seconds for a response from the server.
+            IQ ack = (IQ) collector.nextResult(SmackConfiguration.getPacketReplyTimeout());
+            collector.cancel();
+            if (ack == null) {
+                throw new XMPPException("No response from the server.");
+            }
+            // If the server replied with an error, throw an exception.
+            else if (ack.getType() == IQ.Type.ERROR) {
+                throw new XMPPException(ack.getError());
+            }
+        }
+        return userJID;
+    }
+
+    /**
+     * Notification message saying that the server requires the client to bind a
+     * resource to the stream.
+     */
+    void bindingRequired() {
+        synchronized (this) {
+            resourceBinded = true;
+            // Wake up the thread that is waiting in the #authenticate method
+            notify();
+        }
+    }
+
+    /**
+     * Notification message saying that the server supports sessions. When a server supports
+     * sessions the client needs to send a Session packet after successfully binding a resource
+     * for the session.
+     */
+    void sessionsSupported() {
+        sessionSupported = true;
+    }
+    
 
     /**
      * Sends the specified packet to the server.

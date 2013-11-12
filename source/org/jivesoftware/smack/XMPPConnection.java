@@ -72,16 +72,11 @@ public class XMPPConnection extends Connection {
     Socket socket;
 
     String connectionID = null;
-    private String user = null;
     private boolean connected = false;
     // socketClosed is used concurrent
     // by XMPPConnection, PacketReader, PacketWriter
     private volatile boolean socketClosed = false;
 
-    /**
-     * Flag that indicates if the user is currently authenticated with the server.
-     */
-    private boolean authenticated = false;
     /**
      * Flag that indicates if the user was authenticated with the server when the connection
      * to the server was closed (abruptly or not).
@@ -222,44 +217,9 @@ public class XMPPConnection extends Connection {
     }
 
     @Override
-    public synchronized void login(String username, String password, String resource) throws XMPPException {
-        if (!isConnected()) {
-            throw new IllegalStateException("Not connected to server.");
-        }
-        if (authenticated) {
-            throw new IllegalStateException("Already logged in to server.");
-        }
-        // Do partial version of nameprep on the username.
-        username = username.toLowerCase().trim();
-
-        String response;
-        if (saslAuthentication.hasNonAnonymousAuthentication()) {
-            // Authenticate using SASL
-            if (password != null) {
-                response = saslAuthentication.authenticate(username, password, resource);
-            }
-            else {
-                response = saslAuthentication
-                        .authenticate(username, resource, config.getCallbackHandler());
-            }
-        }
-        else {
-            // No SASL auth availabe, Non-SASL is deprecated
-            throw new XMPPException("No SASL authentication mechanism available.");
-        }
-
-        // Set the user.
-        if (response != null) {
-            this.user = response;
-            // Update the serviceName with the one returned by the server
-            config.setServiceName(StringUtils.parseServer(response));
-        }
-        else {
-            this.user = username + "@" + getServiceName();
-            if (resource != null) {
-                this.user += "/" + resource;
-            }
-        }
+    public synchronized void login(String username, String password, String resource)
+            throws XMPPException {
+        perform_sasl(username, password, resource);
 
         // If compression is enabled then request the server to use stream compression
         if (config.isCompressionEnabled()) {
@@ -399,10 +359,6 @@ public class XMPPConnection extends Connection {
 
     public boolean isSocketClosed() {
         return socketClosed;
-    }
-
-    public boolean isAuthenticated() {
-        return authenticated;
     }
 
     public boolean isAnonymous() {

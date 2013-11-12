@@ -20,11 +20,7 @@
 
 package org.jivesoftware.smack;
 
-import org.jivesoftware.smack.filter.PacketIDFilter;
-import org.jivesoftware.smack.packet.Bind;
-import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Packet;
-import org.jivesoftware.smack.packet.Session;
 import org.jivesoftware.smack.sasl.*;
 
 import javax.security.auth.callback.CallbackHandler;
@@ -77,8 +73,6 @@ public class SASLAuthentication {
      * the connection.
      */
     private boolean saslFailed;
-    private boolean resourceBinded;
-    private boolean sessionSupported;
     /**
      * The SASL related error condition if there was one provided by the server.
      */
@@ -260,7 +254,7 @@ public class SASLAuthentication {
                     }
                 } else {
                     // Bind a resource for this connection and
-                    return bindResourceAndEstablishSession(resource);
+                    return connection.perform_bind(resource);
                 }
             }
             catch (XMPPException e) {
@@ -338,7 +332,7 @@ public class SASLAuthentication {
                     }
                 } else {
                     // Bind a resource for this connection and
-                    return bindResourceAndEstablishSession(resource);
+                    return connection.perform_bind(resource);
                 }
             }
             catch (XMPPException e) {
@@ -394,67 +388,11 @@ public class SASLAuthentication {
                 }
             } else {
                 // Bind a resource for this connection and
-                return bindResourceAndEstablishSession(null);
+                return connection.perform_bind(null);
             }
         } catch (IOException e) {
             throw new XMPPException("SASL authentication failed", e);
         }
-    }
-
-    private String bindResourceAndEstablishSession(String resource) throws XMPPException {
-        // Wait until server sends response containing the <bind> element
-        synchronized (this) {
-            if (!resourceBinded) {
-                try {
-                    wait(30000);
-                }
-                catch (InterruptedException e) {
-                    // Ignore
-                }
-            }
-        }
-
-        if (!resourceBinded) {
-            // Server never offered resource binding
-            throw new XMPPException("Resource binding not offered by server");
-        }
-
-        Bind bindResource = new Bind();
-        bindResource.setResource(resource);
-
-        PacketCollector collector = connection
-                .createPacketCollector(new PacketIDFilter(bindResource.getPacketID()));
-        // Send the packet
-        connection.sendPacket(bindResource);
-        // Wait up to a certain number of seconds for a response from the server.
-        Bind response = (Bind) collector.nextResult(SmackConfiguration.getPacketReplyTimeout());
-        collector.cancel();
-        if (response == null) {
-            throw new XMPPException("No response from the server.");
-        }
-        // If the server replied with an error, throw an exception.
-        else if (response.getType() == IQ.Type.ERROR) {
-            throw new XMPPException(response.getError());
-        }
-        String userJID = response.getJid();
-
-        if (sessionSupported) {
-            Session session = new Session();
-            collector = connection.createPacketCollector(new PacketIDFilter(session.getPacketID()));
-            // Send the packet
-            connection.sendPacket(session);
-            // Wait up to a certain number of seconds for a response from the server.
-            IQ ack = (IQ) collector.nextResult(SmackConfiguration.getPacketReplyTimeout());
-            collector.cancel();
-            if (ack == null) {
-                throw new XMPPException("No response from the server.");
-            }
-            // If the server replied with an error, throw an exception.
-            else if (ack.getType() == IQ.Type.ERROR) {
-                throw new XMPPException(ack.getError());
-            }
-        }
-        return userJID;
     }
 
     /**
@@ -528,31 +466,10 @@ public class SASLAuthentication {
         }
     }
 
-    /**
-     * Notification message saying that the server requires the client to bind a
-     * resource to the stream.
-     */
-    void bindingRequired() {
-        synchronized (this) {
-            resourceBinded = true;
-            // Wake up the thread that is waiting in the #authenticate method
-            notify();
-        }
-    }
-
     public void send(Packet stanza) {
         connection.sendPacket(stanza);
     }
 
-    /**
-     * Notification message saying that the server supports sessions. When a server supports
-     * sessions the client needs to send a Session packet after successfully binding a resource
-     * for the session.
-     */
-    void sessionsSupported() {
-        sessionSupported = true;
-    }
-    
     /**
      * Initializes the internal state in order to be able to be reused. The authentication
      * is used by the connection at the first login and then reused after the connection
@@ -561,7 +478,8 @@ public class SASLAuthentication {
     protected void init() {
         saslNegotiated = false;
         saslFailed = false;
-        resourceBinded = false;
-        sessionSupported = false;
+	// XXX HACK TODO
+        connection.resourceBinded = false;
+        connection.sessionSupported = false;
     }
 }
