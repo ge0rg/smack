@@ -60,7 +60,7 @@ import java.util.*;
  * @author Gaston Dombiak
  * @author Jay Kline
  */
-public class SASLAuthentication implements UserAuthentication {
+public class SASLAuthentication {
 
     private static Map<String, Class<? extends SASLMechanism>> implementedMechanisms = new HashMap<String, Class<? extends SASLMechanism>>();
     private static List<String> mechanismsPreferences = new ArrayList<String>();
