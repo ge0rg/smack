@@ -104,7 +104,7 @@ public class ConnectionConfiguration implements Cloneable {
      */
     public ConnectionConfiguration(String serviceName) {
         // Perform DNS lookup to get host and port to use
-        hostAddresses = DNSUtil.resolveXMPPDomain(serviceName);
+        hostAddresses = DNSUtil.resolveXMPPDomain(idna2ascii(serviceName));
         init(serviceName, ProxyInfo.forDefaultProxy());
     }
 
@@ -119,7 +119,7 @@ public class ConnectionConfiguration implements Cloneable {
      */
     public ConnectionConfiguration(String serviceName,ProxyInfo proxy) {
         // Perform DNS lookup to get host and port to use
-        hostAddresses = DNSUtil.resolveXMPPDomain(serviceName);
+        hostAddresses = DNSUtil.resolveXMPPDomain(idna2ascii(serviceName));
         init(serviceName, proxy);
     }
 
@@ -602,10 +602,19 @@ public class ConnectionConfiguration implements Cloneable {
         hostAddresses = new ArrayList<HostAddress>(1);
         HostAddress hostAddress;
         try {
-             hostAddress = new HostAddress(host, port);
+             hostAddress = new HostAddress(idna2ascii(host), port);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
         hostAddresses.add(hostAddress);
+    }
+
+    private static String idna2ascii(String hostname) {
+        try {
+            return gnu.inet.encoding.IDNA.toASCII(hostname);
+        } catch (gnu.inet.encoding.IDNAException e) {
+            // TODO: fall back to original name; should throw up!
+            return hostname;
+        }
     }
 }
