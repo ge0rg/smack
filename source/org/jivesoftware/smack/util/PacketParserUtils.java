@@ -264,6 +264,7 @@ public class PacketParserUtils {
                 	}
                 	catch (Exception e) {
                 		System.err.println("Failed to parse extension packet in Presence packet.");
+				e.printStackTrace();
                 	}
                 }
             }
