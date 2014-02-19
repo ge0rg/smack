@@ -17,6 +17,7 @@
 
 package org.jivesoftware.smackx.iqversion.packet;
 
+import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -58,7 +59,6 @@ import org.xmlpull.v1.XmlPullParser;
  */
 public class Version extends IQ {
     public static final String NAMESPACE = "jabber:iq:version";
-    public static final String ELEMENT = "ping";
 
     private String name;
     private String version;
@@ -191,14 +191,14 @@ public class Version extends IQ {
                 Collections.synchronizedMap(new WeakHashMap<Connection, Manager>());
 
         private Version own_version;
-        private Connection connection;
+        private WeakReference<Connection> weakRefConnection;
 
         // IQ Flood protection
         private long iqMinDelta = 100;
         private long lastIqStamp = 0; // timestamp of the last received IQ
 
         private Manager(final Connection connection) {
-            this.connection = connection;
+            this.weakRefConnection = new WeakReference<Connection>(connection);
             instances.put(connection, this);
 
             ServiceDiscoveryManager sdm = ServiceDiscoveryManager.getInstanceFor(connection);
@@ -224,7 +224,7 @@ public class Version extends IQ {
                     reply.setPacketID(packet.getPacketID());
                     reply.setFrom(packet.getTo());
                     reply.setTo(packet.getFrom());
-                    connection.sendPacket(reply);
+                    weakRefConnection.get().sendPacket(reply);
                 }
             }
             , new PacketTypeFilter(Version.class));
