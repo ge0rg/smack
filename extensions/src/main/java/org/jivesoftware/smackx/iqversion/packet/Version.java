@@ -193,10 +193,6 @@ public class Version extends IQ {
         private Version own_version;
         private WeakReference<Connection> weakRefConnection;
 
-        // IQ Flood protection
-        private long iqMinDelta = 100;
-        private long lastIqStamp = 0; // timestamp of the last received IQ
-
         private Manager(final Connection connection) {
             this.weakRefConnection = new WeakReference<Connection>(connection);
             instances.put(connection, this);
@@ -211,15 +207,7 @@ public class Version extends IQ {
                 public void processPacket(Packet packet) {
                     if (own_version == null)
                         return;
-                    if (iqMinDelta > 0) {
-                        // Ping flood protection enabled
-                        long currentMillies = System.currentTimeMillis();
-                        long delta = currentMillies - lastIqStamp;
-                        lastIqStamp = currentMillies;
-                        if (delta < iqMinDelta) {
-                            return;
-                        }
-                    }
+
                     Version reply = new Version(own_version);
                     reply.setPacketID(packet.getPacketID());
                     reply.setFrom(packet.getTo());
