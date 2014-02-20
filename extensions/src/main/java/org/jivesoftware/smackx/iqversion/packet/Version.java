@@ -17,19 +17,9 @@
 
 package org.jivesoftware.smackx.iqversion.packet;
 
-import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.Map;
-import java.util.WeakHashMap;
 
-import org.jivesoftware.smack.Connection;
-import org.jivesoftware.smack.PacketListener;
-import org.jivesoftware.smack.filter.PacketTypeFilter;
 import org.jivesoftware.smack.packet.IQ;
-import org.jivesoftware.smack.packet.Packet;
-import org.jivesoftware.smack.provider.IQProvider;
-import org.jivesoftware.smackx.ServiceDiscoveryManager;
-import org.xmlpull.v1.XmlPullParser;
+import org.jivesoftware.smack.util.StringUtils;
 
 /**
  * A Version IQ packet, which is used by XMPP clients to discover version information
@@ -78,12 +68,8 @@ public class Version extends IQ {
         this.os = os;
     }
 
-    private Version(Version original) {
+    public Version(Version original) {
         this(original.name, original.version, original.os);
-    }
-
-    private Version() {
-        super();
     }
 
     /**
@@ -148,88 +134,19 @@ public class Version extends IQ {
 
     public String getChildElementXML() {
         StringBuilder buf = new StringBuilder();
-        buf.append("<query xmlns=\"jabber:iq:version\">");
+        buf.append("<query xmlns=\"");
+        buf.append(Version.NAMESPACE);
+        buf.append("\">");
         if (name != null) {
-            buf.append("<name>").append(name).append("</name>");
+            buf.append("<name>").append(StringUtils.escapeForXML(name)).append("</name>");
         }
         if (version != null) {
-            buf.append("<version>").append(version).append("</version>");
+            buf.append("<version>").append(StringUtils.escapeForXML(version)).append("</version>");
         }
         if (os != null) {
-            buf.append("<os>").append(os).append("</os>");
+            buf.append("<os>").append(StringUtils.escapeForXML(os)).append("</os>");
         }
         buf.append("</query>");
         return buf.toString();
-    }
-
-    public static class Provider implements IQProvider {
-        public IQ parseIQ(XmlPullParser parser) throws Exception {
-            Version v = new Version();
-
-            boolean done = false;
-            while (!done) {
-                int eventType = parser.next();
-                if (eventType == XmlPullParser.START_TAG && parser.getName().equals("name")) {
-                    v.setName(parser.nextText());
-                }
-                else if (eventType == XmlPullParser.START_TAG && parser.getName().equals("version")) {
-                    v.setVersion(parser.nextText());
-                }
-                else if (eventType == XmlPullParser.START_TAG && parser.getName().equals("os")) {
-                    v.setOs(parser.nextText());
-                }
-                else if (eventType == XmlPullParser.END_TAG && parser.getName().equals("query")) {
-                    done = true;
-                }
-            }
-            return v;
-        }
-    }
-
-    public static class Manager {
-        private static final Map<Connection, Manager> instances =
-                Collections.synchronizedMap(new WeakHashMap<Connection, Manager>());
-
-        private Version own_version;
-        private WeakReference<Connection> weakRefConnection;
-
-        private Manager(final Connection connection) {
-            this.weakRefConnection = new WeakReference<Connection>(connection);
-            instances.put(connection, this);
-
-            ServiceDiscoveryManager sdm = ServiceDiscoveryManager.getInstanceFor(connection);
-            sdm.addFeature(Version.NAMESPACE);
-
-            connection.addPacketListener(new PacketListener() {
-                /**
-                 * Sends a Version reply on request
-                 */
-                public void processPacket(Packet packet) {
-                    if (own_version == null)
-                        return;
-
-                    Version reply = new Version(own_version);
-                    reply.setPacketID(packet.getPacketID());
-                    reply.setFrom(packet.getTo());
-                    reply.setTo(packet.getFrom());
-                    weakRefConnection.get().sendPacket(reply);
-                }
-            }
-            , new PacketTypeFilter(Version.class));
-        }
-
-        public static synchronized Manager getInstanceFor(Connection connection) {
-            Manager manager = instances.get(connection);
-
-            if (manager == null) {
-                manager = new Manager(connection);
-            }
-
-            return manager;
-        }
-
-        public void setVersion(Version v) {
-            own_version = v;
-        }
     }
 }
