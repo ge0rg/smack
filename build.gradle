@@ -180,6 +180,7 @@ Smack core components."""
 		dns
 	}
 	dependencies {
+		compile files('libs/libidn-1.28.jar')
 		compile 'xpp3:xpp3:1.1.4c'
 		testCompile 'junit:junit:4.+'
 		testCompile 'xmlunit:xmlunit:1.5'
