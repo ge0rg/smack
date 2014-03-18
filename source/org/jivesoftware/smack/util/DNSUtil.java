@@ -80,8 +80,14 @@ public class DNSUtil {
      * @param domain the domain.
      * @return List of HostAddress, which encompasses the hostname and port that the
      *      XMPP server can be reached at for the specified domain.
+     * @throws Exception 
      */
-    public static List<HostAddress> resolveXMPPDomain(String domain) {
+    public static List<HostAddress> resolveXMPPDomain(final String domain) throws Exception {
+        if (dnsResolver == null) {
+            List<HostAddress> addresses = new ArrayList<HostAddress>(1);
+            addresses.add(new HostAddress(domain, 5222));
+            return addresses;
+        }
         return resolveDomain(domain, 'c');
     }
 
@@ -101,12 +107,18 @@ public class DNSUtil {
      * @param domain the domain.
      * @return List of HostAddress, which encompasses the hostname and port that the
      *      XMPP server can be reached at for the specified domain.
+     * @throws Exception 
      */
-    public static List<HostAddress> resolveXMPPServerDomain(String domain) {
+    public static List<HostAddress> resolveXMPPServerDomain(final String domain) throws Exception {
+        if (dnsResolver == null) {
+            List<HostAddress> addresses = new ArrayList<HostAddress>(1);
+            addresses.add(new HostAddress(domain, 5269));
+            return addresses;
+        }
         return resolveDomain(domain, 's');
     }
 
-    private static List<HostAddress> resolveDomain(String domain, char keyPrefix) {
+    private static List<HostAddress> resolveDomain(String domain, char keyPrefix) throws Exception {
         // Prefix the key with 's' to distinguish him from the client domain lookups
         String key = keyPrefix + domain;
         // Return item from cache if it exists.

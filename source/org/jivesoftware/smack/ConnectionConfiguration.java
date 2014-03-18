@@ -100,8 +100,6 @@ public class ConnectionConfiguration implements Cloneable {
      * @param serviceName the name of the service provided by an XMPP server.
      */
     public ConnectionConfiguration(String serviceName) {
-        // Perform DNS lookup to get host and port to use
-        hostAddresses = DNSUtil.resolveXMPPDomain(idna2ascii(serviceName));
         init(serviceName, ProxyInfo.forDefaultProxy());
     }
 
@@ -122,8 +120,6 @@ public class ConnectionConfiguration implements Cloneable {
      * @param proxy the proxy through which XMPP is to be connected
      */
     public ConnectionConfiguration(String serviceName,ProxyInfo proxy) {
-        // Perform DNS lookup to get host and port to use
-        hostAddresses = DNSUtil.resolveXMPPDomain(idna2ascii(serviceName));
         init(serviceName, proxy);
     }
 
@@ -220,7 +216,7 @@ public class ConnectionConfiguration implements Cloneable {
      *
      * @param serviceName the XMPP domain of the target server.
      */
-    public void setServiceName(String serviceName) {
+    void setServiceName(String serviceName) {
         this.serviceName = serviceName;
     }
 
@@ -721,14 +717,17 @@ public class ConnectionConfiguration implements Cloneable {
         this.resource = resource;
     }
 
+    void maybeResolveDns() throws Exception {
+        // Abort if we did already resolve the hosts successfully
+        if (hostAddresses != null)
+            return;
+        hostAddresses = DNSUtil.resolveXMPPDomain(idna2ascii(serviceName));
+    }
+
     private void initHostAddresses(String host, int port) {
         hostAddresses = new ArrayList<HostAddress>(1);
         HostAddress hostAddress;
-        try {
-             hostAddress = new HostAddress(idna2ascii(host), port);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
+        hostAddress = new HostAddress(idna2ascii(host), port);
         hostAddresses.add(hostAddress);
     }
 
