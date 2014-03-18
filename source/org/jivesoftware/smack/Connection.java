@@ -232,7 +232,17 @@ public abstract class Connection {
     protected XMPPInputOutputStream compressionHandler;
 
     /**
-     * Create a new Connection to a XMPP server.
+     * The used host to establish the connection to
+     */
+    private String host;
+
+    /**
+     * The used port to establish the connection to
+     */
+    private int port;
+
+    /**
+     * Create a new XMPPConnection to a XMPP server.
      * 
      * @param configuration The configuration which is used to establish the connection.
      */
@@ -264,20 +274,20 @@ public abstract class Connection {
      * Returns the host name of the server where the XMPP server is running. This would be the
      * IP address of the server or a name that may be resolved by a DNS server.
      * 
-     * @return the host name of the server where the XMPP server is running.
+     * @return the host name of the server where the XMPP server is running or null if not yet connected.
      */
     public String getHost() {
-        return config.getHost();
+        return host;
     }
 
     /**
      * Returns the port number of the XMPP server for this connection. The default port
-     * for normal connections is 5222. The default port for SSL connections is 5223.
+     * for normal connections is 5222.
      * 
-     * @return the port number of the XMPP server.
+     * @return the port number of the XMPP server or 0 if not yet connected.
      */
     public int getPort() {
-        return config.getPort();
+        return port;
     }
 
     /**

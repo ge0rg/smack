@@ -25,6 +25,7 @@ import java.net.URISyntaxException;
 
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.proxy.ProxyInfo;
+import org.jivesoftware.smack.util.dns.HostAddress;
 
 /**
  * Configuration to use while establishing the connection to the XMPP server via
@@ -115,6 +116,9 @@ public class BOSHConfiguration extends ConnectionConfiguration {
         if (file.charAt(0) != '/') {
             file = '/' + file;
         }
-        return new URI((ssl ? "https://" : "http://") + getHost() + ":" + getPort() + file);
+        HostAddress hostAddress = hostAddresses.get(0);
+        String host = hostAddress.getFQDN();
+        int port = hostAddress.getPort();
+        return new URI((ssl ? "https://" : "http://") + host + ":" + port + file);
     }
 }
