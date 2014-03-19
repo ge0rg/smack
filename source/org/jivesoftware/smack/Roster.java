@@ -120,7 +120,7 @@ public class Roster {
         presenceMap = new ConcurrentHashMap<String, Map<String, Presence>>();
         // Listen for any roster packets.
         PacketFilter rosterFilter = new PacketTypeFilter(RosterPacket.class);
-        connection.addPacketListener(new RosterPacketListener(), rosterFilter);
+        connection.addPacketListener(new RosterPushListener(), rosterFilter);
         // Listen for any presence packets.
         PacketFilter presenceFilter = new PacketTypeFilter(Presence.class);
         presencePacketListener = new PresencePacketListener();
@@ -977,9 +977,9 @@ public class Roster {
     }
 
     /**
-     * Listens for all roster packets and processes them.
+     * Listens for all roster pushes and processes them.
      */
-    private class RosterPacketListener implements PacketListener {
+    private class RosterPushListener implements PacketListener {
 
         public void processPacket(Packet packet) {
             // Keep a registry of the entries that were added, deleted or updated. An event
@@ -990,6 +990,19 @@ public class Roster {
            
             String version=null;
             RosterPacket rosterPacket = (RosterPacket) packet;
+            //XXX: this code is also responsible for processing roster responses. ouch.
+            //XXX//if (!rosterPacket.getType().equals(IQ.Type.SET)) {
+            //XXX//    return;
+            //XXX//}
+
+            // Roster push (RFC 6121, 2.1.6)
+            // A roster push with a non-empty from not matching our address MUST be ignored
+            String jid = StringUtils.parseBareAddress(connection.getUser());
+            if (rosterPacket.getFrom() != null &&
+                    !rosterPacket.getFrom().equals(jid)) {
+                return;
+            }
+
             List<RosterPacket.Item> rosterItems = new ArrayList<RosterPacket.Item>();
             for(RosterPacket.Item item : rosterPacket.getRosterItems()){
             	rosterItems.add(item);
