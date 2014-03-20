@@ -87,6 +87,8 @@ public class ConnectionConfiguration implements Cloneable {
     private String resource;
     private boolean sendPresence = true;
     private boolean rosterLoadedAtLogin = true;
+    private boolean legacySessionDisabled = false;
+    private boolean useDnsSrvRr = true;
     private SecurityMode securityMode = SecurityMode.enabled;
 	
 	// Holds the proxy information (such as proxyhost, proxyport, username, password etc)
@@ -718,9 +720,7 @@ public class ConnectionConfiguration implements Cloneable {
     }
 
     void maybeResolveDns() throws Exception {
-        // Abort if we did already resolve the hosts successfully
-        if (hostAddresses != null)
-            return;
+        if (!useDnsSrvRr) return;
         hostAddresses = DNSUtil.resolveXMPPDomain(idna2ascii(serviceName));
     }
 
@@ -729,6 +729,7 @@ public class ConnectionConfiguration implements Cloneable {
         HostAddress hostAddress;
         hostAddress = new HostAddress(idna2ascii(host), port);
         hostAddresses.add(hostAddress);
+        useDnsSrvRr = false;
     }
 
     private static String idna2ascii(String hostname) {
