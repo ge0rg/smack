@@ -673,7 +673,7 @@ public class XMPPConnection extends Connection {
             }
             if (packetReader != null) {
                 try {
-                    packetReader.shutdown();
+                    packetReader.quickShutdown();
                 }
                 catch (Throwable ignore) { /* ignore */ }
                 packetReader = null;
