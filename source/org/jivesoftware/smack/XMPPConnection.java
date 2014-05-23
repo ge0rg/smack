@@ -874,6 +874,13 @@ public class XMPPConnection extends Connection {
         // Secure the plain connection
         socket = context.getSocketFactory().createSocket(plain,
                 plain.getInetAddress().getHostAddress(), plain.getPort(), true);
+        List<String> supportedProtocols = java.util.Arrays.asList(((SSLSocket) socket).getSupportedProtocols());
+        List<String> enabledProtocols = new java.util.ArrayList<String>(3);
+        for (String p : new String[]{"TLSv1.2", "TLSv1.1", "TLSv1"}) {
+            if (supportedProtocols.contains(p))
+                enabledProtocols.add(p);
+        }
+        ((SSLSocket) socket).setEnabledProtocols(enabledProtocols.toArray(new String[enabledProtocols.size()]));
         socket.setSoTimeout(0);
         socket.setKeepAlive(true);
         // Initialize the reader and writer with the new secured version
