@@ -106,6 +106,17 @@ public class RoomInfo {
             this.occupantsCount = occCountField == null ? -1 : Integer.parseInt(occCountField.getValues()
                     .next());
         }
+
+        if (roomname.length() == 0) {
+            Iterator<DiscoverInfo.Identity> it = info.getIdentities();
+            while (it.hasNext()) {
+                String id_name = it.next().getName();
+                if (id_name != null && id_name.length() > 0) {
+                    roomname = id_name;
+                    break;
+                }
+            }
+        }
     }
 
     /**
