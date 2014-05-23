@@ -40,6 +40,10 @@ public class RoomInfo {
      */
     private String room;
     /**
+     * Huaman readable room name.
+     */
+    private String roomname;
+    /**
      * Description of the room.
      */
     private String description = "";
@@ -89,6 +93,9 @@ public class RoomInfo {
         // Get the information based on the discovered extended information
         Form form = Form.getFormFrom(info);
         if (form != null) {
+            FormField nameField = form.getField("muc#roomconfig_roomname");
+            this.roomname = ( nameField == null || !(nameField.getValues().hasNext()) )? "" : nameField.getValues().next();
+
             FormField descField = form.getField("muc#roominfo_description");
             this.description = ( descField == null || !(descField.getValues().hasNext()) )? "" : descField.getValues().next();
 
@@ -109,6 +116,16 @@ public class RoomInfo {
     public String getRoom() {
         return room;
     }
+
+    /**
+     * Returns the human-readable room name.
+     *
+     * @return the discovered room name.
+     */
+    public String getRoomName() {
+        return roomname;
+    }
+
 
     /**
      * Returns the discovered description of the room.
