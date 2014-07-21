@@ -25,6 +25,7 @@ import org.jivesoftware.smack.util.DNSUtil;
 import org.jivesoftware.smack.util.dns.HostAddress;
 
 import javax.net.SocketFactory;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.security.auth.callback.CallbackHandler;
 import java.io.File;
@@ -65,6 +66,7 @@ public class ConnectionConfiguration implements Cloneable {
     private boolean notMatchingDomainCheckEnabled = false;
     private boolean isRosterVersioningAvailable = false;
     private SSLContext customSSLContext;
+    private HostnameVerifier tlsHostnameVerifier;
 
     private boolean compressionEnabled = false;
 
@@ -493,6 +495,25 @@ public class ConnectionConfiguration implements Cloneable {
      */
     public void setCustomSSLContext(SSLContext context) {
         this.customSSLContext = context;
+    }
+
+    /**
+     * Gets the hostname verifier for SSL sockets. This is null by default,
+     * which means no hostname verification will take place.
+     *
+     * @return the SSLContext previously set with setCustomSSLContext() or null.
+     */
+    public HostnameVerifier getHostnameVerifier() {
+        return this.tlsHostnameVerifier;
+    }
+
+    /**
+     * Sets a custom HostnameVerifier for creating SSL sockets.
+     *
+     * @param verifier the custom HostnameVerifier for new sockets; null to reset default behavior.
+     */
+    public void setHostnameVerifier(HostnameVerifier verifier) {
+        this.tlsHostnameVerifier = verifier;
     }
 
     /**
