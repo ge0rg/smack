@@ -890,7 +890,8 @@ public class XMPPConnection extends Connection {
         ((SSLSocket) socket).startHandshake();
         // Verify the server hostname
         HostnameVerifier verifier = this.config.getHostnameVerifier();
-	if (verifier != null && !verifier.verify(getServiceName(), ((SSLSocket) socket).getSession()))
+	if (verifier != null && !verifier.verify(ConnectionConfiguration.idna2ascii(getServiceName()),
+				((SSLSocket) socket).getSession()))
                 throw new XMPPException("Server could not authenticate as '" + getServiceName() + "'.");
         //if (((SSLSocket) socket).getWantClientAuth()) {
         //    System.err.println("Connection wants client auth");

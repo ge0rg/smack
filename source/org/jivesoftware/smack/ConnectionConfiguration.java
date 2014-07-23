@@ -753,7 +753,7 @@ public class ConnectionConfiguration implements Cloneable {
         useDnsSrvRr = false;
     }
 
-    private static String idna2ascii(String hostname) {
+    protected static String idna2ascii(String hostname) {
         try {
             return gnu.inet.encoding.IDNA.toASCII(hostname);
         } catch (gnu.inet.encoding.IDNAException e) {
