@@ -106,7 +106,7 @@ class RoomListenerMultiplexor implements ConnectionListener {
     }
 
     public void connectionClosedOnError(Exception e) {
-        cancel();
+        //cancel();
     }
 
     public void reconnectingIn(int seconds) {
