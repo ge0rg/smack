@@ -2546,7 +2546,7 @@ public class MultiUserChat {
         }
     }
 
-    private void cleanup() {
+    public void cleanup() {
         try {
             if (connection != null) {
                 roomListenerMultiplexor.removeRoom(room);
@@ -2554,6 +2554,8 @@ public class MultiUserChat {
                 for (PacketListener connectionListener : connectionListeners) {
                     connection.removePacketListener(connectionListener);
                 }
+                // prevent this code from being run again
+                connection = null;
             }
         } catch (Exception e) {
             // Do nothing
