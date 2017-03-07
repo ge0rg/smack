@@ -64,8 +64,6 @@ class RoomListenerMultiplexor implements ConnectionListener {
                 RoomListenerMultiplexor rm = new RoomListenerMultiplexor(conn, new RoomMultiplexFilter(),
                         new RoomMultiplexListener());
 
-                rm.init();
-
                 // We need to use a WeakReference because the monitor references the
                 // connection and this could prevent the GC from collecting the monitor
                 // when no other object references the monitor
@@ -97,6 +95,8 @@ class RoomListenerMultiplexor implements ConnectionListener {
     }
 
     public void addRoom(String address, PacketMultiplexListener roomListener) {
+        // enforce init here, because connection termination might have cancelled it
+        init();
         filter.addRoom(address);
         listener.addRoom(address, roomListener);
     }
@@ -129,6 +129,7 @@ class RoomListenerMultiplexor implements ConnectionListener {
      */
     public void init() {
         connection.addConnectionListener(this);
+        connection.removePacketListener(listener);
         connection.addPacketListener(listener, filter);
     }
 
