@@ -107,7 +107,7 @@ public class RoomInfo {
                     .next());
         }
 
-        if (roomname.length() == 0) {
+        if (roomname == null || roomname.length() == 0) {
             Iterator<DiscoverInfo.Identity> it = info.getIdentities();
             while (it.hasNext()) {
                 String id_name = it.next().getName();
