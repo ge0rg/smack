@@ -160,6 +160,8 @@ public class StringUtils {
             }
         }
         else {
+		// remove sub-millisecond precision for Java SimpleDateFormat
+		dateString = dateString.replaceFirst("(\\.\\d{3})\\d*", "$1");
         	for (PatternCouplings coupling : couplings) {
                 matcher = coupling.pattern.matcher(dateString);
                 
