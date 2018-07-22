@@ -362,7 +362,6 @@ public class PacketParserUtils {
                 iqPacket.setType(IQ.Type.ERROR);
                 iqPacket.setError(new XMPPError(XMPPError.Condition.feature_not_implemented));
                 connection.sendPacket(iqPacket);
-                return null;
             }
             else {
                 // If an IQ packet wasn't created above, create an empty IQ packet.
